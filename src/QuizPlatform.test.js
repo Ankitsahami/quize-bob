@@ -1,44 +1,65 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import QuizPlatform from './QuizPlatform';
 
 describe('QuizPlatform Component', () => {
-  const mockQuizData = [
-    { id: 1, question: 'What is React?', answers: ['Library', 'Framework', 'Language'], correctAnswer: 'Library' },
-    { id: 2, question: 'What is a Hook?', answers: ['A special function', 'A kind of syntax', 'A new feature'], correctAnswer: 'A special function' }
-  ];
-
-  test('renders quiz questions correctly', () => {
-    render(<QuizPlatform quizData={mockQuizData} />);
-    expect(screen.getByText(/What is React?/i)).toBeInTheDocument();
-    expect(screen.getByText(/What is a Hook?/i)).toBeInTheDocument();
+  test('renders first question correctly', () => {
+    render(<QuizPlatform />);
+    expect(screen.getByText(/What is the capital of France?/i)).toBeInTheDocument();
+    expect(screen.getByText(/Question 1\/12/i)).toBeInTheDocument();
+    expect(screen.getByText(/Score: 0/i)).toBeInTheDocument();
   });
 
-  test('handles answer selection', () => {
-    render(<QuizPlatform quizData={mockQuizData} />);
-    fireEvent.click(screen.getByText(/Library/i));
-    expect(screen.getByText(/Correct!/i)).toBeInTheDocument();
+  test('displays answer options for first question', () => {
+    render(<QuizPlatform />);
+    expect(screen.getByText(/London/i)).toBeInTheDocument();
+    expect(screen.getByText(/Berlin/i)).toBeInTheDocument();
+    expect(screen.getByText(/Paris/i)).toBeInTheDocument();
+    expect(screen.getByText(/Madrid/i)).toBeInTheDocument();
   });
 
-  test('updates score correctly', () => {
-    render(<QuizPlatform quizData={mockQuizData} />);
-    fireEvent.click(screen.getByText(/Library/i));
-    expect(screen.getByText(/Score: 1/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/A special function/i));
-    expect(screen.getByText(/Score: 2/i)).toBeInTheDocument();
+  test('handles correct answer selection', async () => {
+    render(<QuizPlatform />);
+    fireEvent.click(screen.getByText(/Paris/i));
+
+    // Wait for score to update
+    await waitFor(() => {
+      expect(screen.getByText(/Score: 10/i)).toBeInTheDocument();
+    });
+
+    // Wait for the next question to appear (after 1.5s delay)
+    await waitFor(() => {
+      expect(screen.getByText(/Which planet is known as the Red Planet?/i)).toBeInTheDocument();
+    }, { timeout: 2000 });
   });
 
-  test('displays completion message on quiz finish', () => {
-    render(<QuizPlatform quizData={mockQuizData} />);
-    fireEvent.click(screen.getByText(/Library/i));
-    fireEvent.click(screen.getByText(/A special function/i));
-    expect(screen.getByText(/Quiz complete!/i)).toBeInTheDocument();
+  test('handles incorrect answer selection', async () => {
+    render(<QuizPlatform />);
+    fireEvent.click(screen.getByText(/London/i));
+
+    // Score should remain 0
+    expect(screen.getByText(/Score: 0/i)).toBeInTheDocument();
+
+    // Wait for the next question to appear (after 1.5s delay)
+    await waitFor(() => {
+      expect(screen.getByText(/Which planet is known as the Red Planet?/i)).toBeInTheDocument();
+    }, { timeout: 2000 });
   });
 
-  test('triggers UI interactions correctly', () => {
-    const { getByText } = render(<QuizPlatform quizData={mockQuizData} />);
-    fireEvent.click(getByText(/Library/i));
-    fireEvent.click(getByText(/Next/i)); // Assuming there is a Next button
-    expect(getByText(/What is a Hook?/i)).toBeInTheDocument();
+  test('shows visual feedback on answer selection', () => {
+    render(<QuizPlatform />);
+
+    // Test that clicking an answer shows visual feedback
+    const parisButton = screen.getByText(/Paris/i).closest('button');
+    fireEvent.click(parisButton);
+
+    // The button should be disabled after selection
+    expect(parisButton).toHaveClass('cursor-not-allowed');
+  });
+
+  test('component renders without errors', () => {
+    render(<QuizPlatform />);
+    expect(screen.getByText(/What is the capital of France?/i)).toBeInTheDocument();
+    expect(screen.getByText(/Multiple Choice/i)).toBeInTheDocument();
   });
 });
